@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <code>nimble install jose</code>
+  <code>nimble install jose</code> | <code>clue install jose</code>
 </p>
 
 <p align="center">
