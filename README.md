@@ -13,24 +13,11 @@
 
 
 ## Features
-- JWS compact (RFC 7515): HS256/384/512, RS256/384/512, PS256/384/512,
-  ES256/384/512, ES256K, EdDSA (RFC 8032 Ed25519). `alg=none` rejected
-  unless explicitly opted in; `crit` headers rejected.
-- JWE compact (RFC 7516): `alg` `dir`, A128KW/A192KW/A256KW,
-  RSA-OAEP/RSA-OAEP-256/RSA1_5, ECDH-ES/ECDH-ES+A128KW/A192KW/A256KW
-  (P-256/384/521, X25519, secp256k1), PBES2-HS256+A128KW /
-  PBES2-HS384+A192KW / PBES2-HS512+A256KW; `enc` A128CBC-HS256,
-  A192CBC-HS384, A256CBC-HS512, A128GCM, A192GCM, A256GCM, C20P.
-- JWK/JWKS (RFC 7517): `oct`, `RSA`, `EC`, `OKP` (Ed25519, X25519);
-  public/private parse and serialize, `kid` set lookup, RFC 7638
-  thumbprints, RSA minimum 2048 bits, oct minimum 128 bits.
-- JWT (RFC 7519): `JwtBuilder` for claims, `JwtChecker` for validation
-  (exp/nbf with leeway, iss, aud, required claims), signed (JWS) and
-  encrypted (JWE) tokens.
-- Pure Nim, zero new dependencies besides nimcypher and bigints
-  (`std/json` only for JSON). Errors surface as `JoseError`.
-- Verified against RFC 7515/7516/7517/7518/7638/3394/8037 test vectors,
-  OpenSSL, and the `jose` npm package (11/11 both directions).
+- JWS signing and verification (compact).
+- JWE encryption and decryption (compact).
+- JWK and JWKS key handling.
+- JWT claims builder with validation.
+- Pure Nim on top of nimcypher.
 
 ## Examples
 The JWE examples use this string-to-bytes helper (`jweEncrypt` and
