@@ -11,4 +11,4 @@ srcDir        = "src"
 
 requires "nim >= 2.2.10"
 requires "nimcypher >= 0.2.2"
-requires "bigints >= 1.0.0"
+requires "bigints >= 1.1.0"
