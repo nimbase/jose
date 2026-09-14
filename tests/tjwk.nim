@@ -9,6 +9,7 @@ import nimcypher/algos/ecdsa
 
 import jose/jwk
 import jose/jws
+import jose/algs
 import jose/b64
 import jose/errors
 
@@ -130,7 +131,7 @@ suite "jwk validation":
       """{"kty":"OKP","crv":"X25519",
           "x":"3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08"}""")
     expect(JoseError):
-      discard jwsSign("EdDSA", key, "x")
+      discard jwsSign(EdDSA, key, "x")
 
   test "rejects unsupported OKP curve":
     expect(JoseError):

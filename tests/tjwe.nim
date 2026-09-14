@@ -10,6 +10,7 @@ import nimcypher/algos/x25519 as x25519Algo
 
 import jose/jwk
 import jose/jwe
+import jose/algs
 import jose/b64
 import jose/errors
 
@@ -105,7 +106,7 @@ suite "jwe x25519 rfc8037 A.6":
     check z == expect
 
 suite "jwe roundtrips":
-  proc rt(alg, enc: string, key: Jwk, msg = imagination,
+  proc rt(alg: JweAlg, enc: JweEnc, key: Jwk, msg = imagination,
           p2c = 1000): string =
     let tok = jweEncrypt(alg, enc, key, sb(msg),
                          p2c = p2c)
@@ -113,59 +114,59 @@ suite "jwe roundtrips":
     tok
 
   test "dir across all enc":
-    for enc in ["A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512",
-                "A128GCM", "A192GCM", "A256GCM", "C20P"]:
+    for enc in [A128CBC_HS256, A192CBC_HS384, A256CBC_HS512,
+                A128GCM, A192GCM, A256GCM, C20P]:
       let key = jwkOctGenerate(case enc
-        of "A128CBC-HS256": 256
-        of "A192CBC-HS384": 384
-        of "A256CBC-HS512": 512
-        of "A128GCM": 128
-        of "A192GCM": 192
-        of "A256GCM": 256
+        of A128CBC_HS256: 256
+        of A192CBC_HS384: 384
+        of A256CBC_HS512: 512
+        of A128GCM: 128
+        of A192GCM: 192
+        of A256GCM: 256
         else: 256)
-      discard rt("dir", enc, key)
+      discard rt(Dir, enc, key)
 
   test "A128KW/A192KW/A256KW x CBC/GCM":
-    for (alg, bits) in [("A128KW", 128), ("A192KW", 192),
-                        ("A256KW", 256)]:
+    for (alg, bits) in [(A128KW, 128), (A192KW, 192),
+                        (A256KW, 256)]:
       let kek = jwkOctGenerate(bits)
-      for enc in ["A128CBC-HS256", "A128GCM", "A256GCM", "C20P"]:
+      for enc in [A128CBC_HS256, A128GCM, A256GCM, C20P]:
         discard rt(alg, enc, kek)
 
   test "RSA-OAEP/RSA-OAEP-256/RSA1_5 x CBC/GCM":
     let priv = jwkFromJsonStr(rsaKeyA1)
-    for alg in ["RSA-OAEP", "RSA-OAEP-256", "RSA1_5"]:
-      for enc in ["A128CBC-HS256", "A256GCM"]:
+    for alg in [RSA_OAEP, RSA_OAEP_256, RSA1_5]:
+      for enc in [A128CBC_HS256, A256GCM]:
         discard rt(alg, enc, priv)
 
   test "ECDH-ES direct + wrap (P-256, X25519)":
     let bobEc = jwkFromJsonStr(bobP256)
     let bobX = jwkX25519Generate()
     for key in [bobEc, bobX]:
-      for alg in ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A256KW"]:
-        for enc in ["A128CBC-HS256", "A128GCM"]:
+      for alg in [ECDH_ES, ECDH_ES_A128KW, ECDH_ES_A256KW]:
+        for enc in [A128CBC_HS256, A128GCM]:
           let tok = jweEncrypt(alg, enc, key, sb(imagination))
           check jweDecryptStr(tok, key) == imagination
           # epk present, encrypted key empty iff direct
           let hdr = jweDecrypt(tok, key).header
           check hdr.hasKey("epk")
-          check (tok.split('.')[1].len == 0) == (alg == "ECDH-ES")
+          check (tok.split('.')[1].len == 0) == (alg == ECDH_ES)
 
   test "PBES2 all three PRFs":
     let pw = jwkOctKey(sb("correct horse battery staple"))
-    for alg in ["PBES2-HS256+A128KW", "PBES2-HS384+A192KW",
-                "PBES2-HS512+A256KW"]:
-      discard rt(alg, "A128GCM", pw)
+    for alg in [PBES2_HS256_A128KW, PBES2_HS384_A192KW,
+                PBES2_HS512_A256KW]:
+      discard rt(alg, A128GCM, pw)
 
   test "PBES2 accepts short passwords via jwkPassword":
     let pw = jwkPassword(sb("pw"))
-    let tok = jweEncrypt("PBES2-HS256+A128KW", "A128GCM", pw,
+    let tok = jweEncrypt(PBES2_HS256_A128KW, A128GCM, pw,
                          sb(imagination), p2c = 1000)
     check jweDecryptStr(tok, pw) == imagination
 
   test "apu/apv flow into KDF":
     let bobEc = jwkFromJsonStr(bobP256)
-    let tok = jweEncrypt("ECDH-ES", "A128GCM", bobEc, sb(imagination),
+    let tok = jweEncrypt(ECDH_ES, A128GCM, bobEc, sb(imagination),
                          apu = sb("Alice"), apv = sb("Bob"))
     let hdr = jweDecrypt(tok, bobEc).header
     check hdr["apu"].getStr() == "QWxpY2U"
@@ -174,13 +175,13 @@ suite "jwe roundtrips":
 
   test "kid flows into header":
     let kek = jwkOctGenerate(128, kid = "wrap-1")
-    let tok = jweEncrypt("A128KW", "A128GCM", kek, sb("x"))
+    let tok = jweEncrypt(A128KW, A128GCM, kek, sb("x"))
     check jweDecrypt(tok, kek).header["kid"].getStr() == "wrap-1"
 
 suite "jwe rejection":
   test "tampered ciphertext fails (GCM)":
     let key = jwkFromJsonStr(octA3)
-    let tok = jweEncrypt("A128KW", "A128GCM", key, sb(imagination))
+    let tok = jweEncrypt(A128KW, A128GCM, key, sb(imagination))
     var parts = tok.split('.')
     var ct = b64urlDecode(parts[3])
     ct[0] = ct[0] xor 1
@@ -190,7 +191,7 @@ suite "jwe rejection":
 
   test "tampered tag fails (CBC-HMAC)":
     let key = jwkFromJsonStr(octA3)
-    let tok = jweEncrypt("A128KW", "A128CBC-HS256", key, sb(imagination))
+    let tok = jweEncrypt(A128KW, A128CBC_HS256, key, sb(imagination))
     var parts = tok.split('.')
     var tag = b64urlDecode(parts[4])
     tag[^1] = tag[^1] xor 1
@@ -200,7 +201,7 @@ suite "jwe rejection":
 
   test "tampered protected header fails":
     let key = jwkFromJsonStr(octA3)
-    let tok = jweEncrypt("A128KW", "A128GCM", key, sb(imagination))
+    let tok = jweEncrypt(A128KW, A128GCM, key, sb(imagination))
     var parts = tok.split('.')
     parts[0] = if parts[0][0] == 'A': 'B' & parts[0][1 .. ^1]
                else: 'A' & parts[0][1 .. ^1]
@@ -209,7 +210,7 @@ suite "jwe rejection":
 
   test "tampered encrypted key fails":
     let priv = jwkFromJsonStr(rsaKeyA1)
-    let tok = jweEncrypt("RSA-OAEP", "A128GCM", priv, sb(imagination))
+    let tok = jweEncrypt(RSA_OAEP, A128GCM, priv, sb(imagination))
     var parts = tok.split('.')
     var ek = b64urlDecode(parts[1])
     ek[^1] = ek[^1] xor 1
@@ -220,33 +221,33 @@ suite "jwe rejection":
   test "wrong key fails":
     let key = jwkFromJsonStr(octA3)
     let other = jwkOctGenerate(128)
-    let tok = jweEncrypt("A128KW", "A128GCM", key, sb(imagination))
+    let tok = jweEncrypt(A128KW, A128GCM, key, sb(imagination))
     expect(JoseError):
       discard jweDecrypt(tok, other)
 
   test "dir rejects wrong-size key":
     let key = jwkOctGenerate(128)
     expect(JoseError):
-      discard jweEncrypt("dir", "A256GCM", key, sb("x"))
+      discard jweEncrypt(Dir, A256GCM, key, sb("x"))
 
   test "RSA-OAEP refuses EC key":
     let ec = jwkFromJsonStr(bobP256)
     expect(JoseError):
-      discard jweEncrypt("RSA-OAEP", "A128GCM", ec, sb("x"))
+      discard jweEncrypt(RSA_OAEP, A128GCM, ec, sb("x"))
 
   test "allowAlgs/allowEncs restrict":
     let key = jwkFromJsonStr(octA3)
-    let tok = jweEncrypt("A128KW", "A128GCM", key, sb(imagination))
+    let tok = jweEncrypt(A128KW, A128GCM, key, sb(imagination))
     expect(JoseError):
-      discard jweDecrypt(tok, key, allowAlgs = ["RSA-OAEP"])
+      discard jweDecrypt(tok, key, allowAlgs = [RSA_OAEP])
     expect(JoseError):
-      discard jweDecrypt(tok, key, allowEncs = ["A256GCM"])
-    check jweDecryptStr(tok, key, allowAlgs = ["A128KW"],
-                        allowEncs = ["A128GCM"]) == imagination
+      discard jweDecrypt(tok, key, allowEncs = [A256GCM])
+    check jweDecryptStr(tok, key, allowAlgs = [A128KW],
+                        allowEncs = [A128GCM]) == imagination
 
   test "zip rejected":
     let key = jwkFromJsonStr(octA3)
-    let tok = jweEncrypt("A128KW", "A128GCM", key, sb("x"))
+    let tok = jweEncrypt(A128KW, A128GCM, key, sb("x"))
     var parts = tok.split('.')
     let hdr = parseJson(b64urlDecodeStr(parts[0]))
     hdr["zip"] = %"DEF"
@@ -257,7 +258,7 @@ suite "jwe rejection":
   test "A128GCMKW rejected as unsupported":
     let key = jwkOctGenerate(128)
     expect(JoseError):
-      discard jweEncrypt("A128GCMKW", "A128GCM", key, sb("x"))
+      discard jweEncrypt(A128GCMKW, A128GCM, key, sb("x"))
 
   test "malformed tokens rejected":
     let key = jwkFromJsonStr(octA3)

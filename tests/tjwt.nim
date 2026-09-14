@@ -26,7 +26,7 @@ suite "jwt signed":
   test "sign, verify, claims intact":
     let key = jwkFromJsonStr(hsKey)
     var b = builder(1_700_000_000)
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker(issuer = "joe", audience = @["app"])
     c.now = 1_700_000_000
     let claims = jwtVerify(tok, key, c)
@@ -36,7 +36,7 @@ suite "jwt signed":
   test "expired rejected, leeway honored":
     let key = jwkFromJsonStr(hsKey)
     var b = builder(1_700_000_000)
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker()
     c.now = 1_700_003_661 # exp + 61, past default 60s leeway
     expect(JoseError):
@@ -48,7 +48,7 @@ suite "jwt signed":
   test "nbf enforced":
     let key = jwkFromJsonStr(hsKey)
     var b = builder(1_700_000_000)
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker()
     c.now = 1_699_999_929 # nbf - 61, past default 60s leeway
     expect(JoseError):
@@ -57,7 +57,7 @@ suite "jwt signed":
   test "issuer/audience mismatch rejected":
     let key = jwkFromJsonStr(hsKey)
     var b = builder(1_700_000_000)
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker(issuer = "mallory")
     c.now = 1_700_000_000
     expect(JoseError):
@@ -73,7 +73,7 @@ suite "jwt signed":
     b.aud("x") # replaced below with array
     b.claims["aud"] = %*["x", "app"]
     b.exp(1_700_003_600)
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker(audience = @["app"])
     c.now = 1_700_000_000
     check jwtVerify(tok, key, c)["aud"][1].getStr() == "app"
@@ -82,7 +82,7 @@ suite "jwt signed":
     let key = jwkFromJsonStr(hsKey)
     var b = initJwtBuilder()
     b.iss("joe")
-    let tok = jwtSign(b, "HS256", key)
+    let tok = jwtSign(b, HS256, key)
     var c = initJwtChecker(requireExp = true)
     c.now = 1_700_000_000
     expect(JoseError):
@@ -95,7 +95,7 @@ suite "jwt signed":
   test "bad signature still fails at JWS layer":
     let key = jwkFromJsonStr(hsKey)
     var b = builder(1_700_000_000)
-    var tok = jwtSign(b, "HS256", key)
+    var tok = jwtSign(b, HS256, key)
     tok[^5] = if tok[^5] == 'A': 'B' else: 'A'
     var c = initJwtChecker()
     c.now = 1_700_000_000
@@ -106,7 +106,7 @@ suite "jwt encrypted":
   test "encrypt, decrypt, claims intact":
     let kek = jwkOctGenerate(128)
     var b = builder(1_700_000_000)
-    let tok = jwtEncrypt(b, "A128KW", "A128GCM", kek)
+    let tok = jwtEncrypt(b, A128KW, A128GCM, kek)
     var c = initJwtChecker(issuer = "joe")
     c.now = 1_700_000_000
     check jwtDecrypt(tok, kek, c)["sub"].getStr() == "user-1"
@@ -114,7 +114,7 @@ suite "jwt encrypted":
   test "expired encrypted token rejected":
     let kek = jwkOctGenerate(128)
     var b = builder(1_700_000_000)
-    let tok = jwtEncrypt(b, "dir", "A128GCM", jwkOctGenerate(128))
+    let tok = jwtEncrypt(b, Dir, A128GCM, jwkOctGenerate(128))
     # wrong key must fail before claims are even examined
     var c = initJwtChecker()
     c.now = 1_700_000_000

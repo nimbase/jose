@@ -3,11 +3,10 @@
 #
 # (c) 2026 George Lemon | MIT License
 
-import std/strutils
-
 import nimcypher/hash as cyHash
 
 import ./errors
+import ./algs
 
 proc be32(v: int): array[4, byte] =
   result[0] = byte((v shr 24) and 0xFF)
@@ -88,14 +87,15 @@ proc pbkdf2(password, salt: openArray[byte], iterations, dkLen,
     inc blk
   result.setLen(dkLen)
 
-proc pbes2Salt*(alg: string, p2s: openArray[byte]): seq[byte] =
+proc pbes2Salt*(alg: JweAlg, p2s: openArray[byte]): seq[byte] =
   ## Salt = ASCII(alg) || 0x00 || p2s (RFC 7518 §4.8.1.1).
-  result = newSeq[byte](alg.len + 1 + p2s.len)
-  for i in 0 ..< alg.len: result[i] = byte(alg[i])
-  result[alg.len] = 0
-  for i in 0 ..< p2s.len: result[alg.len + 1 + i] = p2s[i]
+  let astr = $alg
+  result = newSeq[byte](astr.len + 1 + p2s.len)
+  for i in 0 ..< astr.len: result[i] = byte(astr[i])
+  result[astr.len] = 0
+  for i in 0 ..< p2s.len: result[astr.len + 1 + i] = p2s[i]
 
-proc pbes2Derive*(password: openArray[byte], alg: string,
+proc pbes2Derive*(password: openArray[byte], alg: JweAlg,
                   p2s: openArray[byte], p2c: int, hashBits: int,
                   kekLen: int): seq[byte] =
   ## Derive a KEK of `kekLen` bytes via PBES2 (RFC 7518 §4.8).
@@ -104,13 +104,11 @@ proc pbes2Derive*(password: openArray[byte], alg: string,
     joseFail("PBES2 iteration count below minimum 1000")
   pbkdf2(password, pbes2Salt(alg, p2s), p2c, kekLen, hashBits)
 
-proc pbes2HashBits*(alg: string): int =
+proc pbes2HashBits*(alg: JweAlg): int =
   ## PRF hash size for a PBES2 alg value.
-  if alg.startsWith("PBES2-HS256+"):
-    256
-  elif alg.startsWith("PBES2-HS384+"):
-    384
-  elif alg.startsWith("PBES2-HS512+"):
-    512
+  case alg
+  of PBES2_HS256_A128KW: 256
+  of PBES2_HS384_A192KW: 384
+  of PBES2_HS512_A256KW: 512
   else:
-    joseFail("unsupported PBES2 alg: " & alg)
+    joseFail("unsupported PBES2 alg: " & $alg)

@@ -4,6 +4,7 @@
 
 import ./jose/errors
 import ./jose/b64
+import ./jose/algs
 import ./jose/jwk
 import ./jose/jws
 import ./jose/kw
@@ -13,6 +14,7 @@ import ./jose/jwt
 
 export errors
 export b64
+export algs
 export jwk
 export jws
 export kw

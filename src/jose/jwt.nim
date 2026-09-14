@@ -6,6 +6,7 @@ import std/json
 import std/times
 
 import ./errors
+import ./algs
 import ./jwk
 import ./jws
 import ./jwe
@@ -123,13 +124,13 @@ proc checkClaims*(c: JwtChecker, claims: JsonNode): JsonNode =
 # Signed JWT (JWS compact)
 # ---------------------------------------------------------------------------
 
-proc jwtSign*(b: JwtBuilder, alg: string, key: Jwk,
+proc jwtSign*(b: JwtBuilder, alg: JwsAlg, key: Jwk,
               protectedExtra: JsonNode = nil): string =
   ## Sign the built claims, returning a JWS compact serialization.
   jwsSign(alg, key, $b.claims, protectedExtra)
 
 proc jwtVerify*(token: string, key: Jwk, c: JwtChecker,
-                allowAlgs: openArray[string] = []): JsonNode =
+                allowAlgs: openArray[JwsAlg] = []): JsonNode =
   ## Verify the signature and validate claims. Returns the claims.
   let v = jwsVerify(token, key, allowAlgs)
   var claims: JsonNode
@@ -143,7 +144,7 @@ proc jwtVerify*(token: string, key: Jwk, c: JwtChecker,
 # Encrypted JWT (JWE compact)
 # ---------------------------------------------------------------------------
 
-proc jwtEncrypt*(b: JwtBuilder, alg, enc: string, key: Jwk,
+proc jwtEncrypt*(b: JwtBuilder, alg: JweAlg, enc: JweEnc, key: Jwk,
                  protectedExtra: JsonNode = nil,
                  apu: openArray[byte] = [], apv: openArray[byte] = [],
                  p2c = 100_000): string =
@@ -151,8 +152,8 @@ proc jwtEncrypt*(b: JwtBuilder, alg, enc: string, key: Jwk,
   jweEncrypt(alg, enc, key, sb($b.claims), protectedExtra, apu, apv, p2c)
 
 proc jwtDecrypt*(token: string, key: Jwk, c: JwtChecker,
-                 allowAlgs: openArray[string] = [],
-                 allowEncs: openArray[string] = []): JsonNode =
+                 allowAlgs: openArray[JweAlg] = [],
+                 allowEncs: openArray[JweEnc] = []): JsonNode =
   ## Decrypt and validate claims. Returns the claims.
   let d = jweDecrypt(token, key, allowAlgs, allowEncs)
   var claims: JsonNode

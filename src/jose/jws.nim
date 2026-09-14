@@ -16,57 +16,58 @@ import nimcypher/algos/ed25519 as ed25519Algo
 
 import ./b64
 import ./errors
+import ./algs
 import ./jwk
 
 const
-  HsAlgs* = ["HS256", "HS384", "HS512"]
-  RsAlgs* = ["RS256", "RS384", "RS512"]
-  PsAlgs* = ["PS256", "PS384", "PS512"]
-  EsAlgs* = ["ES256", "ES384", "ES512", "ES256K"]
+  HsAlgs* = [HS256, HS384, HS512]
+  RsAlgs* = [RS256, RS384, RS512]
+  PsAlgs* = [PS256, PS384, PS512]
+  EsAlgs* = [ES256, ES384, ES512, ES256K]
 
-proc rsaHash(alg: string): RsaHash =
-  case alg[^3 .. ^1]
-  of "256": rhSha256
-  of "384": rhSha384
-  of "512": rhSha512
-  else: joseFail("unsupported JWS alg: " & alg)
-
-proc esCurve(alg: string): EcCurve =
+proc rsaHash(alg: JwsAlg): RsaHash =
   case alg
-  of "ES256": P256
-  of "ES384": P384
-  of "ES512": P521
-  of "ES256K": Secp256k1
-  else: joseFail("unsupported JWS alg: " & alg)
+  of RS256, PS256: rhSha256
+  of RS384, PS384: rhSha384
+  of RS512, PS512: rhSha512
+  else: joseFail("unsupported JWS alg: " & $alg)
 
-proc checkKeyAlg(alg: string, key: Jwk) =
+proc esCurve(alg: JwsAlg): EcCurve =
+  case alg
+  of ES256: P256
+  of ES384: P384
+  of ES512: P521
+  of ES256K: Secp256k1
+  else: joseFail("unsupported JWS alg: " & $alg)
+
+proc checkKeyAlg(alg: JwsAlg, key: Jwk) =
   ## Reject alg/key-type mismatches before touching crypto.
   if alg in HsAlgs:
-    if key.kind != jwkOct: joseFail("alg " & alg & " needs an oct key")
+    if key.kind != jwkOct: joseFail("alg " & $alg & " needs an oct key")
   elif alg in RsAlgs or alg in PsAlgs:
-    if key.kind != jwkRSA: joseFail("alg " & alg & " needs an RSA key")
+    if key.kind != jwkRSA: joseFail("alg " & $alg & " needs an RSA key")
   elif alg in EsAlgs:
-    if key.kind != jwkEC: joseFail("alg " & alg & " needs an EC key")
+    if key.kind != jwkEC: joseFail("alg " & $alg & " needs an EC key")
     if key.ecCurve != esCurve(alg):
-      joseFail("alg " & alg & " needs curve " & ecCrvFromCurve(esCurve(alg)))
-  elif alg == "EdDSA":
+      joseFail("alg " & $alg & " needs curve " & ecCrvFromCurve(esCurve(alg)))
+  elif alg == EdDSA:
     if key.kind != jwkOKP or key.okpCrv != "Ed25519":
       joseFail("alg EdDSA needs an Ed25519 key")
   else:
-    joseFail("unsupported JWS alg: " & alg)
+    joseFail("unsupported JWS alg: " & $alg)
 
 # ---------------------------------------------------------------------------
 # Signing
 # ---------------------------------------------------------------------------
 
-proc rawSign(alg: string, key: Jwk, signingInput: openArray[byte]): seq[byte] =
+proc rawSign(alg: JwsAlg, key: Jwk, signingInput: openArray[byte]): seq[byte] =
   if not key.hasPrivate:
     joseFail("signing needs a private key")
   if alg in HsAlgs:
     let mac =
       case alg
-      of "HS256": @(cyHash.sha256Hmac(key.oct, signingInput))
-      of "HS384": @(cyHash.sha384Hmac(key.oct, signingInput))
+      of HS256: @(cyHash.sha256Hmac(key.oct, signingInput))
+      of HS384: @(cyHash.sha384Hmac(key.oct, signingInput))
       else: @(cyHash.sha512Hmac(key.oct, signingInput))
     return mac
   elif alg in RsAlgs:
@@ -77,17 +78,17 @@ proc rawSign(alg: string, key: Jwk, signingInput: openArray[byte]): seq[byte] =
     return rsaAlgo.pssSign(key.rsaPriv, rsaHash(alg), signingInput)
   elif alg in EsAlgs:
     return ecdsaAlgo.sign(key.ecPriv, signingInput)
-  elif alg == "EdDSA":
+  elif alg == EdDSA:
     var sk: array[64, byte]
     for i in 0 ..< 32: sk[i] = key.okpSeed[i]
     for i in 0 ..< 32: sk[32 + i] = key.okpPub[i]
     let sig = ed25519Algo.ed25519Sign(signingInput, sk)
     return @(sig)
-  joseFail("unsupported JWS alg: " & alg)
+  joseFail("unsupported JWS alg: " & $alg)
 
-proc buildProtected(alg: string, key: Jwk,
+proc buildProtected(alg: JwsAlg, key: Jwk,
                     extra: JsonNode = nil): string =
-  var hdr = %*{"alg": alg}
+  var hdr = %*{"alg": $alg}
   if key.kid.len > 0:
     hdr["kid"] = %key.kid
   if not extra.isNil:
@@ -97,7 +98,7 @@ proc buildProtected(alg: string, key: Jwk,
       hdr[k] = v
   b64urlEncode($hdr)
 
-proc jwsSign*(alg: string, key: Jwk, payload: openArray[byte],
+proc jwsSign*(alg: JwsAlg, key: Jwk, payload: openArray[byte],
               protectedExtra: JsonNode = nil): string =
   ## Sign `payload`, returning the JWS compact serialization.
   checkKeyAlg(alg, key)
@@ -108,7 +109,7 @@ proc jwsSign*(alg: string, key: Jwk, payload: openArray[byte],
     b64urlEncode(rawSign(alg, key, signingInput.toOpenArrayByte(
       0, signingInput.len - 1)))
 
-proc jwsSign*(alg: string, key: Jwk, payload: string,
+proc jwsSign*(alg: JwsAlg, key: Jwk, payload: string,
               protectedExtra: JsonNode = nil): string =
   if payload.len == 0:
     jwsSign(alg, key, [], protectedExtra)
@@ -126,14 +127,14 @@ type
     payload*: seq[byte]
     header*: JsonNode
 
-proc rawVerify(alg: string, key: Jwk, signingInput, sig: openArray[byte]) =
+proc rawVerify(alg: JwsAlg, key: Jwk, signingInput, sig: openArray[byte]) =
   ## Raises JoseError when the signature is invalid.
   var ok = false
   if alg in HsAlgs:
     let expect =
       case alg
-      of "HS256": @(cyHash.sha256Hmac(key.oct, signingInput))
-      of "HS384": @(cyHash.sha384Hmac(key.oct, signingInput))
+      of HS256: @(cyHash.sha256Hmac(key.oct, signingInput))
+      of HS384: @(cyHash.sha384Hmac(key.oct, signingInput))
       else: @(cyHash.sha512Hmac(key.oct, signingInput))
     ok = cyHash.verifyDigest(expect, sig) and expect.len == sig.len
   elif alg in RsAlgs:
@@ -142,19 +143,19 @@ proc rawVerify(alg: string, key: Jwk, signingInput, sig: openArray[byte]) =
     ok = rsaAlgo.pssVerify(key.rsaPub, rsaHash(alg), signingInput, sig)
   elif alg in EsAlgs:
     ok = ecdsaAlgo.verify(key.ecPub, signingInput, sig)
-  elif alg == "EdDSA":
+  elif alg == EdDSA:
     if sig.len != 64:
       joseFail("EdDSA signature must be 64 bytes")
     var s: array[64, byte]
     for i in 0 ..< 64: s[i] = sig[i]
     ok = ed25519Algo.ed25519Check(s, key.okpPub, signingInput)
   else:
-    joseFail("unsupported JWS alg: " & alg)
+    joseFail("unsupported JWS alg: " & $alg)
   if not ok:
     joseFail("JWS signature verification failed")
 
 proc jwsVerify*(token: string, key: Jwk,
-                allowAlgs: openArray[string] = [],
+                allowAlgs: openArray[JwsAlg] = [],
                 allowNone = false): JwsVerified =
   ## Verify a JWS compact serialization. Returns payload + protected
   ## header. `allowAlgs` restricts acceptable algs (empty = any known).
@@ -170,15 +171,16 @@ proc jwsVerify*(token: string, key: Jwk,
     joseFail("unsupported crit header extensions")
   if not hdr.hasKey("alg") or hdr["alg"].kind != JString:
     joseFail("JWS header missing alg")
-  let alg = hdr["alg"].getStr()
-  if alg == "none":
+  let algStr = hdr["alg"].getStr()
+  if algStr == "none":
     if not allowNone:
       joseFail("unsecured JWS (alg none) rejected")
     if parts[2].len != 0:
       joseFail("unsecured JWS must have empty signature")
     return JwsVerified(payload: b64urlDecode(parts[1]), header: hdr)
+  let alg = parseJwsAlg(algStr)
   if allowAlgs.len > 0 and alg notin allowAlgs:
-    joseFail("JWS alg not allowed: " & alg)
+    joseFail("JWS alg not allowed: " & algStr)
   checkKeyAlg(alg, key)
   let signingInput = parts[0] & "." & parts[1]
   rawVerify(alg, key,
@@ -187,7 +189,7 @@ proc jwsVerify*(token: string, key: Jwk,
   JwsVerified(payload: b64urlDecode(parts[1]), header: hdr)
 
 proc jwsVerifyStr*(token: string, key: Jwk,
-                   allowAlgs: openArray[string] = [],
+                   allowAlgs: openArray[JwsAlg] = [],
                    allowNone = false): string =
   ## Verify and return the payload as a string.
   let v = jwsVerify(token, key, allowAlgs, allowNone)

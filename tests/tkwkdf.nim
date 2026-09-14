@@ -9,6 +9,7 @@ import std/unittest
 import jose/kw
 import jose/kdf
 import jose/jwk
+import jose/algs
 import jose/b64
 import jose/errors
 
@@ -80,7 +81,7 @@ suite "concat-kdf rfc7518 app C":
   test "derives VqqN6vgjbSBcIijNcacQGg":
     var zb = newSeq[byte](32)
     for i in 0 ..< 32: zb[i] = byte(z[i])
-    let derived = concatKdf(zb, 128, "A128GCM",
+    let derived = concatKdf(zb, 128, $A128GCM,
                             sb("Alice"), sb("Bob"))
     check b64urlEncode(derived) == "VqqN6vgjbSBcIijNcacQGg"
 
@@ -109,18 +110,18 @@ suite "pbes2":
     # openssl kdf -keylen 16 -kdfopt digest:SHA2-256 -kdfopt pass:password
     #   -kdfopt hexsalt:50424553322d48533235362b413132384b57000011223344556677
     #   -kdfopt iter:1000 PBKDF2
-    let kek = pbes2Derive(sb("password"), "PBES2-HS256+A128KW",
+    let kek = pbes2Derive(sb("password"), PBES2_HS256_A128KW,
                           b64urlDecode("ABEiM0RVZnc"), 1000, 256, 16)
     check hexOf(kek) == "e61caca8385d3ebc9bc1e232538cfe5a"
 
   test "roundtrip through AES-KW":
     let pw = sb("password")
     let p2s = b64urlDecode("ABEiM0RVZnc")
-    let kek = pbes2Derive(pw, "PBES2-HS256+A128KW", p2s, 1000, 256, 16)
+    let kek = pbes2Derive(pw, PBES2_HS256_A128KW, p2s, 1000, 256, 16)
     let cek = hexBytes("00112233445566778899AABBCCDDEEFF")
     check aesKwUnwrap(kek, aesKwWrap(kek, cek)) == cek
 
   test "rejects low iteration count":
     expect(JoseError):
-      discard pbes2Derive(sb("pw"), "PBES2-HS256+A128KW",
+      discard pbes2Derive(sb("pw"), PBES2_HS256_A128KW,
                           b64urlDecode("AAAAAAAAAAAAAAAAAAAAAA"), 999, 256, 16)

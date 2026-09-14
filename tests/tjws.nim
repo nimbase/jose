@@ -10,6 +10,7 @@ import nimcypher/algos/ecdsa
 
 import jose/jwk
 import jose/jws
+import jose/algs
 import jose/errors
 
 const payloadB64 =
@@ -120,7 +121,7 @@ suite "jws rfc7515 vectors":
 
 suite "jws roundtrips":
   test "HS256/384/512 sign, verify, deterministic":
-    for alg in ["HS256", "HS384", "HS512"]:
+    for alg in [HS256, HS384, HS512]:
       let key = jwkOctGenerate(512)
       let t1 = jwsSign(alg, key, "hello")
       let t2 = jwsSign(alg, key, "hello")
@@ -129,26 +130,26 @@ suite "jws roundtrips":
 
   test "RS256/384/512 + PS256/384/512 roundtrip (RFC key)":
     let priv = jwkFromJsonStr(rsaKey7515)
-    for alg in ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512"]:
+    for alg in [RS256, RS384, RS512, PS256, PS384, PS512]:
       let tok = jwsSign(alg, priv, "hello")
       check jwsVerifyStr(tok, jwkToPublic(priv)) == "hello"
 
   test "ES256/384/512 + ES256K roundtrip":
     let keys = [jwkFromJsonStr(es256Key7515), jwkEcGenerate(P384),
                 jwkFromJsonStr(es512Key7515), jwkEcGenerate(Secp256k1)]
-    let algs = ["ES256", "ES384", "ES512", "ES256K"]
+    let algs = [ES256, ES384, ES512, ES256K]
     for i in 0 ..< 4:
       let tok = jwsSign(algs[i], keys[i], "hello")
       check jwsVerifyStr(tok, jwkToPublic(keys[i])) == "hello"
 
   test "EdDSA roundtrip":
     let priv = jwkFromJsonStr(edKey8037)
-    let tok = jwsSign("EdDSA", priv, "hello")
+    let tok = jwsSign(EdDSA, priv, "hello")
     check jwsVerifyStr(tok, jwkToPublic(priv)) == "hello"
 
   test "kid flows into header":
     var key = jwkOctGenerate(256, kid = "my-key")
-    let tok = jwsSign("HS256", key, "hello")
+    let tok = jwsSign(HS256, key, "hello")
     check jwsVerify(tok, key).header["kid"].getStr() == "my-key"
 
 suite "jws rejection":
@@ -175,7 +176,7 @@ suite "jws rejection":
     let oct = jwkFromJsonStr(hsKey7515)
     let rsa = jwkToPublic(jwkFromJsonStr(rsaKey7515))
     expect(JoseError):
-      discard jwsSign("RS256", oct, "x")
+      discard jwsSign(RS256, oct, "x")
     expect(JoseError):
       discard jwsVerify(rsToken7515, oct)
     expect(JoseError):
@@ -184,22 +185,22 @@ suite "jws rejection":
   test "ES256 with P-384 key fails":
     let key = jwkEcGenerate(P384)
     expect(JoseError):
-      discard jwsSign("ES256", key, "x")
+      discard jwsSign(ES256, key, "x")
 
   test "private key required to sign":
     let pub = jwkToPublic(jwkFromJsonStr(rsaKey7515))
     expect(JoseError):
-      discard jwsSign("RS256", pub, "x")
+      discard jwsSign(RS256, pub, "x")
 
   test "allowAlgs restricts":
     let key = jwkFromJsonStr(hsKey7515)
     expect(JoseError):
-      discard jwsVerify(hsToken7515, key, ["RS256"])
-    check jwsVerifyStr(hsToken7515, key, ["HS256"]) == payloadJson
+      discard jwsVerify(hsToken7515, key, [RS256])
+    check jwsVerifyStr(hsToken7515, key, [HS256]) == payloadJson
 
   test "crit extensions rejected (RFC 7515 App E)":
     let key = jwkEcGenerate(P256)
-    let tok = jwsSign("ES256", key, "x",
+    let tok = jwsSign(ES256, key, "x",
                       %*{"crit": ["exp"], "exp": 1363284000})
     expect(JoseError):
       discard jwsVerify(tok, jwkToPublic(key))
@@ -214,6 +215,6 @@ suite "jws rejection":
     let full = jwkFromJsonStr(rsaKey7515)
     let bare = jwkRsaPrivateBare(full.rsaPub.n, full.rsaPub.e, full.rsaD)
     expect(JoseError):
-      discard jwsSign("RS256", bare, "x")
+      discard jwsSign(RS256, bare, "x")
     # public ops still work
     check jwsVerifyStr(rsToken7515, jwkToPublic(bare)) == payloadJson

@@ -23,13 +23,14 @@ import nimcypher/algos/aead as aeadAlgo
 
 import ./b64
 import ./errors
+import ./algs
 import ./jwk
 import ./kw
 import ./kdf
 
 const
-  KwAlgs* = ["A128KW", "A192KW", "A256KW"]
-  EcdhKwAlgs* = ["ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
+  KwAlgs* = [A128KW, A192KW, A256KW]
+  EcdhKwAlgs* = [ECDH_ES_A128KW, ECDH_ES_A192KW, ECDH_ES_A256KW]
 
 type
   JweDecrypted* = object
@@ -41,48 +42,31 @@ type
 # Algorithm tables
 # ---------------------------------------------------------------------------
 
-proc cekLen(enc: string): int =
+proc cekLen(enc: JweEnc): int =
   ## Required CEK length in bytes for an `enc` value.
   case enc
-  of "A128CBC-HS256": 32
-  of "A192CBC-HS384": 48
-  of "A256CBC-HS512": 64
-  of "A128GCM": 16
-  of "A192GCM": 24
-  of "A256GCM": 32
-  of "C20P": 32
-  else: joseFail("unsupported JWE enc: " & enc)
+  of A128CBC_HS256: 32
+  of A192CBC_HS384: 48
+  of A256CBC_HS512: 64
+  of A128GCM: 16
+  of A192GCM: 24
+  of A256GCM: 32
+  of C20P: 32
 
-proc kwLen(alg: string): int =
+proc kwLen(alg: JweAlg): int =
   ## KEK length in bytes for a key-wrapping `alg` value.
-  if alg in ["A128KW", "ECDH-ES+A128KW"] or
-      alg.startsWith("PBES2-HS256+"):
-    16
-  elif alg in ["A192KW", "ECDH-ES+A192KW"] or
-      alg.startsWith("PBES2-HS384+"):
-    24
-  elif alg in ["A256KW", "ECDH-ES+A256KW"] or
-      alg.startsWith("PBES2-HS512+"):
-    32
+  case alg
+  of A128KW, ECDH_ES_A128KW, PBES2_HS256_A128KW: 16
+  of A192KW, ECDH_ES_A192KW, PBES2_HS384_A192KW: 24
+  of A256KW, ECDH_ES_A256KW, PBES2_HS512_A256KW: 32
   else:
-    joseFail("unsupported key-wrapping alg: " & alg)
+    joseFail("unsupported key-wrapping alg: " & $alg)
 
-proc isPbes2(alg: string): bool =
-  alg.startsWith("PBES2-")
+proc isPbes2(alg: JweAlg): bool =
+  alg in [PBES2_HS256_A128KW, PBES2_HS384_A192KW, PBES2_HS512_A256KW]
 
-const knownAlgs = ["dir", "A128KW", "A192KW", "A256KW",
-  "RSA-OAEP", "RSA-OAEP-256", "RSA1_5", "ECDH-ES",
-  "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
-  "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW",
-  "A128GCMKW", "A192GCMKW", "A256GCMKW"]
-
-proc checkAlgEnc(alg, enc: string) =
-  if enc notin ["A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512",
-                "A128GCM", "A192GCM", "A256GCM", "C20P"]:
-    joseFail("unsupported JWE enc: " & enc)
-  if alg notin knownAlgs:
-    joseFail("unsupported JWE alg: " & alg)
-  if alg in ["A128GCMKW", "A192GCMKW", "A256GCMKW"]:
+proc checkAlgEnc(alg: JweAlg, enc: JweEnc) =
+  if alg in [A128GCMKW, A192GCMKW, A256GCMKW]:
     joseFail("AES-GCM key wrapping is not supported")
 
 proc sb(s: string): seq[byte] =
@@ -103,24 +87,24 @@ proc toArray12(data: openArray[byte]): array[12, byte] =
 # Content encryption (JWA 5.2 / 5.3 + C20P)
 # ---------------------------------------------------------------------------
 
-proc cbcParams(enc: string): tuple[macLen, hashBits, tagLen: int] =
+proc cbcParams(enc: JweEnc): tuple[macLen, hashBits, tagLen: int] =
   case enc
-  of "A128CBC-HS256": (16, 256, 16)
-  of "A192CBC-HS384": (24, 384, 24)
-  of "A256CBC-HS512": (32, 512, 32)
-  else: joseFail("not a CBC-HMAC enc: " & enc)
+  of A128CBC_HS256: (16, 256, 16)
+  of A192CBC_HS384: (24, 384, 24)
+  of A256CBC_HS512: (32, 512, 32)
+  else: joseFail("not a CBC-HMAC enc: " & $enc)
 
 proc be64(v: int): array[8, byte] =
   let bits = v * 8
   for i in 0 ..< 8:
     result[i] = byte((bits shr (56 - 8 * i)) and 0xFF)
 
-proc cbcTag(enc: string, cek: openArray[byte], aad: openArray[byte],
+proc cbcTag(enc: JweEnc, cek: openArray[byte], aad: openArray[byte],
              iv: openArray[byte], ct: openArray[byte]): seq[byte] =
   ## T = MAC(AAD || IV || CT || AL)[0..tagLen] (RFC 7518 §5.2.2.1).
   let (macLen, hashBits, tagLen) = cbcParams(enc)
   if cek.len != 2 * macLen:
-    joseFail("CEK length mismatch for " & enc)
+    joseFail("CEK length mismatch for " & $enc)
   var macInput = newSeq[byte](aad.len + iv.len + ct.len + 8)
   var off = 0
   for b in aad: macInput[off] = b; inc off
@@ -135,24 +119,24 @@ proc cbcTag(enc: string, cek: openArray[byte], aad: openArray[byte],
     else: @(cyHash.sha512Hmac(cek.toOpenArray(0, macLen - 1), macInput))
   full[0 ..< tagLen]
 
-proc cbcEncrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
+proc cbcEncrypt(enc: JweEnc, cek: openArray[byte], iv: openArray[byte],
                 plaintext: openArray[byte],
                 aad: openArray[byte]): tuple[ct, tag: seq[byte]] =
   let (macLen, _, _) = cbcParams(enc)
   if cek.len != 2 * macLen:
-    joseFail("CEK length mismatch for " & enc)
+    joseFail("CEK length mismatch for " & $enc)
   if iv.len != 16:
     joseFail("CBC-HMAC needs a 128-bit IV")
   let ct = cyAes.aesCbcEncrypt(cek.toOpenArray(macLen, cek.len - 1), iv,
                                plaintext, padded = true)
   (ct, cbcTag(enc, cek, aad, iv, ct))
 
-proc cbcDecrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
+proc cbcDecrypt(enc: JweEnc, cek: openArray[byte], iv: openArray[byte],
                 ct: openArray[byte], tag: openArray[byte],
                 aad: openArray[byte]): seq[byte] =
   let (macLen, _, tagLen) = cbcParams(enc)
   if cek.len != 2 * macLen:
-    joseFail("CEK length mismatch for " & enc)
+    joseFail("CEK length mismatch for " & $enc)
   if iv.len != 16:
     joseFail("CBC-HMAC needs a 128-bit IV")
   if tag.len != tagLen:
@@ -166,11 +150,11 @@ proc cbcDecrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
   except ValueError:
     joseFail("JWE decryption failed")
 
-proc gcmEncrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
+proc gcmEncrypt(enc: JweEnc, cek: openArray[byte], iv: openArray[byte],
                 plaintext: openArray[byte],
                 aad: openArray[byte]): tuple[ct, tag: seq[byte]] =
   if cek.len != cekLen(enc):
-    joseFail("CEK length mismatch for " & enc)
+    joseFail("CEK length mismatch for " & $enc)
   if iv.len != 12:
     joseFail("GCM content encryption needs a 96-bit IV")
   try:
@@ -179,11 +163,11 @@ proc gcmEncrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
   except ValueError as err:
     joseFail("JWE encryption failed: " & err.msg)
 
-proc gcmDecrypt(enc: string, cek: openArray[byte], iv: openArray[byte],
+proc gcmDecrypt(enc: JweEnc, cek: openArray[byte], iv: openArray[byte],
                 ct: openArray[byte], tag: openArray[byte],
                 aad: openArray[byte]): seq[byte] =
   if cek.len != cekLen(enc):
-    joseFail("CEK length mismatch for " & enc)
+    joseFail("CEK length mismatch for " & $enc)
   try:
     cyAes.aesGcmDecrypt(cek, iv, ct, tag, aad)
   except ValueError:
@@ -261,58 +245,57 @@ proc genEphemeral(recipientPub: Jwk): Jwk =
 # Encryption
 # ---------------------------------------------------------------------------
 
-proc encryptCek(alg, enc: string, key: Jwk, cek: openArray[byte],
+proc encryptCek(alg: JweAlg, enc: JweEnc, key: Jwk, cek: openArray[byte],
                 hdr: var JsonNode, apu, apv: openArray[byte],
                 p2c: int): seq[byte] =
   ## Returns the JWE Encrypted Key (empty for dir/ECDH-ES).
   case alg
-  of "dir":
+  of Dir:
     if key.kind != jwkOct or key.oct.len != cekLen(enc):
       joseFail("dir needs an oct key of CEK length")
     @[]
-  of "A128KW", "A192KW", "A256KW":
+  of A128KW, A192KW, A256KW:
     if key.kind != jwkOct or key.oct.len != kwLen(alg):
-      joseFail(alg & " needs an oct KEK")
+      joseFail($alg & " needs an oct KEK")
     aesKwWrap(key.oct, cek)
-  of "RSA-OAEP":
+  of RSA_OAEP:
     if key.kind != jwkRSA:
       joseFail("RSA-OAEP needs an RSA key")
     try:
       rsaAlgo.oaepEncrypt(key.rsaPub, rhSha1, cek)
     except ValueError as err:
       joseFail("JWE key encryption failed: " & err.msg)
-  of "RSA-OAEP-256":
+  of RSA_OAEP_256:
     if key.kind != jwkRSA:
       joseFail("RSA-OAEP-256 needs an RSA key")
     try:
       rsaAlgo.oaepEncrypt(key.rsaPub, rhSha256, cek)
     except ValueError as err:
       joseFail("JWE key encryption failed: " & err.msg)
-  of "RSA1_5":
+  of RSA1_5:
     if key.kind != jwkRSA:
       joseFail("RSA1_5 needs an RSA key")
     try:
       rsaAlgo.pkcs1v15Encrypt(key.rsaPub, cek)
     except ValueError as err:
       joseFail("JWE key encryption failed: " & err.msg)
-  of "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW":
-    # NOTE: bare "ECDH-ES" (direct) is handled in jweEncrypt, where the
+  of ECDH_ES_A128KW, ECDH_ES_A192KW, ECDH_ES_A256KW:
+    # NOTE: bare ECDH-ES (direct) is handled in jweEncrypt, where the
     # CEK itself is the KDF output rather than a random value.
     let eph = genEphemeral(key)
     let z = ecdhZ(key, eph)
-    let derived = concatKdf(z, kwLen(alg) * 8, alg, apu, apv)
+    let derived = concatKdf(z, kwLen(alg) * 8, $alg, apu, apv)
     hdr["epk"] = jwkToJson(jwkToPublic(eph))
     if apu.len > 0: hdr["apu"] = %b64urlEncode(apu)
     if apv.len > 0: hdr["apv"] = %b64urlEncode(apv)
     aesKwWrap(derived, cek)
+  of ECDH_ES:
+    joseFail("ECDH-ES direct mode handled in jweEncrypt")
   else:
     if isPbes2(alg):
       if key.kind != jwkOct:
-        joseFail(alg & " needs the password as an oct key")
+        joseFail($alg & " needs the password as an oct key")
       let hashBits = pbes2HashBits(alg)
-      if not (alg.endsWith("+A128KW") or alg.endsWith("+A192KW") or
-          alg.endsWith("+A256KW")):
-        joseFail("unsupported PBES2 alg: " & alg)
       let saltInput = urandom(16)
       let kek = pbes2Derive(key.oct, alg, saltInput, p2c, hashBits,
                             kwLen(alg))
@@ -320,9 +303,10 @@ proc encryptCek(alg, enc: string, key: Jwk, cek: openArray[byte],
       hdr["p2c"] = %p2c
       aesKwWrap(kek, cek)
     else:
-      joseFail("unsupported JWE alg: " & alg)
+      joseFail("unsupported JWE alg: " & $alg)
 
-proc jweEncrypt*(alg, enc: string, key: Jwk, plaintext: openArray[byte],
+proc jweEncrypt*(alg: JweAlg, enc: JweEnc, key: Jwk,
+                 plaintext: openArray[byte],
                  protectedExtra: JsonNode = nil,
                  apu: openArray[byte] = [], apv: openArray[byte] = [],
                  p2c = 100_000): string =
@@ -330,7 +314,7 @@ proc jweEncrypt*(alg, enc: string, key: Jwk, plaintext: openArray[byte],
   ## values pass the password via `jwkPassword`; `p2c` is the PBKDF2
   ## iteration count.
   checkAlgEnc(alg, enc)
-  var hdr = %*{"alg": alg, "enc": enc}
+  var hdr = %*{"alg": $alg, "enc": $enc}
   if key.kid.len > 0:
     hdr["kid"] = %key.kid
   if not protectedExtra.isNil:
@@ -341,17 +325,17 @@ proc jweEncrypt*(alg, enc: string, key: Jwk, plaintext: openArray[byte],
   # CEK: random, except direct modes where it is derived/agreed.
   var cek = urandom(cekLen(enc))
   var encryptedKey: seq[byte]
-  if alg == "dir":
+  if alg == Dir:
     if key.kind != jwkOct or key.oct.len != cekLen(enc):
       joseFail("dir needs an oct key of CEK length")
     cek = key.oct
     encryptedKey = @[]
-  elif alg == "ECDH-ES":
+  elif alg == ECDH_ES:
     # Direct agreement: CEK comes from the KDF; generate the ephemeral
     # side first via a throwaway, then replace cek below.
     let eph = genEphemeral(key)
     let z = ecdhZ(key, eph)
-    let derived = concatKdf(z, cekLen(enc) * 8, enc, apu, apv)
+    let derived = concatKdf(z, cekLen(enc) * 8, $enc, apu, apv)
     cek = derived
     hdr["epk"] = jwkToJson(jwkToPublic(eph))
     if apu.len > 0: hdr["apu"] = %b64urlEncode(apu)
@@ -363,13 +347,13 @@ proc jweEncrypt*(alg, enc: string, key: Jwk, plaintext: openArray[byte],
   let protectedB64 = b64urlEncode($hdr)
   let aad = sb(protectedB64)
   # Content IV size: 16 bytes for CBC-HMAC, 12 for GCM/C20P.
-  let ivLen = if enc in ["A128CBC-HS256", "A192CBC-HS384",
-                         "A256CBC-HS512"]: 16 else: 12
+  let ivLen = if enc in [A128CBC_HS256, A192CBC_HS384,
+                         A256CBC_HS512]: 16 else: 12
   let iv = urandom(ivLen)
   var ct, tag: seq[byte]
-  if enc in ["A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512"]:
+  if enc in [A128CBC_HS256, A192CBC_HS384, A256CBC_HS512]:
     (ct, tag) = cbcEncrypt(enc, cek, iv, plaintext, aad)
-  elif enc in ["A128GCM", "A192GCM", "A256GCM"]:
+  elif enc in [A128GCM, A192GCM, A256GCM]:
     (ct, tag) = gcmEncrypt(enc, cek, iv, plaintext, aad)
   else:
     (ct, tag) = c20pCrypt(cek, iv, plaintext, aad, true)
@@ -380,27 +364,28 @@ proc jweEncrypt*(alg, enc: string, key: Jwk, plaintext: openArray[byte],
 # Decryption
 # ---------------------------------------------------------------------------
 
-proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
+proc decryptCek(alg: JweAlg, enc: JweEnc, key: Jwk,
+                encryptedKey: openArray[byte],
                 hdr: JsonNode): seq[byte] =
   case alg
-  of "dir":
+  of Dir:
     if encryptedKey.len != 0:
       joseFail("dir JWE must have empty encrypted key")
     if key.kind != jwkOct or key.oct.len != cekLen(enc):
       joseFail("dir needs an oct key of CEK length")
     key.oct
-  of "A128KW", "A192KW", "A256KW":
+  of A128KW, A192KW, A256KW:
     if key.kind != jwkOct or key.oct.len != kwLen(alg):
-      joseFail(alg & " needs an oct KEK")
+      joseFail($alg & " needs an oct KEK")
     let cek = aesKwUnwrap(key.oct, encryptedKey)
     if cek.len != cekLen(enc):
       joseFail("unwrapped CEK length mismatch")
     cek
-  of "RSA-OAEP", "RSA-OAEP-256":
+  of RSA_OAEP, RSA_OAEP_256:
     if key.kind != jwkRSA:
-      joseFail(alg & " needs an RSA key")
+      joseFail($alg & " needs an RSA key")
     requireRsaCrt(key)
-    let h = if alg == "RSA-OAEP": rhSha1 else: rhSha256
+    let h = if alg == RSA_OAEP: rhSha1 else: rhSha256
     var cek: seq[byte]
     try:
       cek = rsaAlgo.oaepDecrypt(key.rsaPriv, h, encryptedKey)
@@ -409,7 +394,7 @@ proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
     if cek.len != cekLen(enc):
       joseFail("decrypted CEK length mismatch")
     cek
-  of "RSA1_5":
+  of RSA1_5:
     if key.kind != jwkRSA:
       joseFail("RSA1_5 needs an RSA key")
     requireRsaCrt(key)
@@ -421,7 +406,7 @@ proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
     if cek.len != cekLen(enc):
       joseFail("decrypted CEK length mismatch")
     cek
-  of "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW":
+  of ECDH_ES, ECDH_ES_A128KW, ECDH_ES_A192KW, ECDH_ES_A256KW:
     if not hdr.hasKey("epk") or hdr["epk"].kind != JObject:
       joseFail("ECDH-ES needs an epk header")
     let epk = jwkFromJson(hdr["epk"])
@@ -437,11 +422,11 @@ proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
         joseFail("apv must be a string")
       apvB = b64urlDecode(hdr["apv"].getStr())
     let z = ecdhZDecrypt(key, epk)
-    let algorithmId = if alg == "ECDH-ES": enc else: alg
+    let algorithmId = if alg == ECDH_ES: $enc else: $alg
     let keyLenBits =
-      if alg == "ECDH-ES": cekLen(enc) * 8 else: kwLen(alg) * 8
+      if alg == ECDH_ES: cekLen(enc) * 8 else: kwLen(alg) * 8
     let derived = concatKdf(z, keyLenBits, algorithmId, apuB, apvB)
-    if alg == "ECDH-ES":
+    if alg == ECDH_ES:
       if encryptedKey.len != 0:
         joseFail("ECDH-ES direct mode needs empty encrypted key")
       derived
@@ -453,7 +438,7 @@ proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
   else:
     if isPbes2(alg):
       if key.kind != jwkOct:
-        joseFail(alg & " needs the password as an oct key")
+        joseFail($alg & " needs the password as an oct key")
       if not hdr.hasKey("p2s") or hdr["p2s"].kind != JString:
         joseFail("PBES2 needs a p2s header")
       if not hdr.hasKey("p2c") or hdr["p2c"].kind != JInt:
@@ -461,20 +446,17 @@ proc decryptCek(alg, enc: string, key: Jwk, encryptedKey: openArray[byte],
       let p2s = b64urlDecode(hdr["p2s"].getStr())
       let p2c = hdr["p2c"].getInt()
       let hashBits = pbes2HashBits(alg)
-      if not (alg.endsWith("+A128KW") or alg.endsWith("+A192KW") or
-          alg.endsWith("+A256KW")):
-        joseFail("unsupported PBES2 alg: " & alg)
       let kek = pbes2Derive(key.oct, alg, p2s, p2c, hashBits, kwLen(alg))
       let cek = aesKwUnwrap(kek, encryptedKey)
       if cek.len != cekLen(enc):
         joseFail("unwrapped CEK length mismatch")
       cek
     else:
-      joseFail("unsupported JWE alg: " & alg)
+      joseFail("unsupported JWE alg: " & $alg)
 
 proc jweDecrypt*(token: string, key: Jwk,
-                 allowAlgs: openArray[string] = [],
-                 allowEncs: openArray[string] = []): JweDecrypted =
+                 allowAlgs: openArray[JweAlg] = [],
+                 allowEncs: openArray[JweEnc] = []): JweDecrypted =
   ## Decrypt a JWE compact serialization. Returns plaintext + header.
   let parts = token.split('.')
   if parts.len != 5:
@@ -492,12 +474,14 @@ proc jweDecrypt*(token: string, key: Jwk,
     joseFail("JWE header missing alg")
   if not hdr.hasKey("enc") or hdr["enc"].kind != JString:
     joseFail("JWE header missing enc")
-  let alg = hdr["alg"].getStr()
-  let enc = hdr["enc"].getStr()
+  let algStr = hdr["alg"].getStr()
+  let encStr = hdr["enc"].getStr()
+  let alg = parseJweAlg(algStr)
+  let enc = parseJweEnc(encStr)
   if allowAlgs.len > 0 and alg notin allowAlgs:
-    joseFail("JWE alg not allowed: " & alg)
+    joseFail("JWE alg not allowed: " & algStr)
   if allowEncs.len > 0 and enc notin allowEncs:
-    joseFail("JWE enc not allowed: " & enc)
+    joseFail("JWE enc not allowed: " & encStr)
   checkAlgEnc(alg, enc)
   let encryptedKey = b64urlDecode(parts[1])
   let iv = b64urlDecode(parts[2])
@@ -506,17 +490,17 @@ proc jweDecrypt*(token: string, key: Jwk,
   let cek = decryptCek(alg, enc, key, encryptedKey, hdr)
   let aad = sb(parts[0])
   var plaintext: seq[byte]
-  if enc in ["A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512"]:
+  if enc in [A128CBC_HS256, A192CBC_HS384, A256CBC_HS512]:
     plaintext = cbcDecrypt(enc, cek, iv, ct, tag, aad)
-  elif enc in ["A128GCM", "A192GCM", "A256GCM"]:
+  elif enc in [A128GCM, A192GCM, A256GCM]:
     plaintext = gcmDecrypt(enc, cek, iv, ct, tag, aad)
   else:
     (plaintext, _) = c20pCrypt(cek, iv, ct, aad, false, tag)
   JweDecrypted(plaintext: plaintext, header: hdr)
 
 proc jweDecryptStr*(token: string, key: Jwk,
-                    allowAlgs: openArray[string] = [],
-                    allowEncs: openArray[string] = []): string =
+                    allowAlgs: openArray[JweAlg] = [],
+                    allowEncs: openArray[JweEnc] = []): string =
   ## Decrypt and return the plaintext as a string.
   let d = jweDecrypt(token, key, allowAlgs, allowEncs)
   result = newString(d.plaintext.len)

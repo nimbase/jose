@@ -43,7 +43,7 @@ b.aud("app")
 b.iat(1_700_000_000)
 b.exp(1_700_003_600)
 
-let token = jwtSign(b, "HS256", key)
+let token = jwtSign(b, HS256, key)
 
 var c = initJwtChecker(issuer = "joe", audience = @["app"])
 c.now = 1_700_000_000 # normally defaults to the current time
@@ -57,7 +57,7 @@ Raw JWS sign and verify:
 import jose
 
 let key = jwkOctGenerate(256)
-let token = jwsSign("HS256", key, """{"hello":"world"}""")
+let token = jwsSign(HS256, key, """{"hello":"world"}""")
 assert jwsVerifyStr(token, key) == """{"hello":"world"}"""
 ```
 
@@ -67,7 +67,7 @@ JWE encrypt and decrypt (direct encryption):
 import jose
 
 let key = jwkOctGenerate(128) # 128-bit CEK for "dir" + A128GCM
-let token = jweEncrypt("dir", "A128GCM", key, sb("Live long and prosper."))
+let token = jweEncrypt(Dir, A128GCM, key, sb("Live long and prosper."))
 assert jweDecryptStr(token, key) == "Live long and prosper."
 ```
 
@@ -77,7 +77,7 @@ Password-based JWE (PBES2):
 import jose
 
 let pw = jwkPassword(sb("correct horse battery staple"))
-let token = jweEncrypt("PBES2-HS256+A128KW", "A128GCM", pw, sb("secret"))
+let token = jweEncrypt(PBES2_HS256_A128KW, A128GCM, pw, sb("secret"))
 assert jweDecryptStr(token, pw) == "secret"
 ```
 
@@ -88,7 +88,7 @@ import std/json
 import jose
 
 let priv = jwkFromJsonStr("""{"kty":"RSA", ... }""")
-let token = jweEncrypt("RSA-OAEP", "A128GCM", priv, sb("secret"))
+let token = jweEncrypt(RSA_OAEP, A128GCM, priv, sb("secret"))
 let set = jwksFromJson(parseJson("""{"keys":[ ... ]}"""))
 assert jweDecryptStr(token, jwksFind(set, "key-id-1")) == "secret"
 ```
