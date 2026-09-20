@@ -214,6 +214,10 @@ proc jwkX25519Generate*(kid = ""): Jwk =
   ## Generate a random X25519 key pair.
   jwkX25519FromSeed(randomSeed32(), kid)
 
+proc jwkEd25519Generate*(kid = ""): Jwk =
+  ## Generate a random Ed25519 key pair for signing.
+  jwkOkpFromSeed(randomSeed32(), kid)
+
 proc jwkOkpGenerate*(crv = "Ed25519", kid = ""): Jwk =
   ## Generate a random OKP key pair. `crv` is "Ed25519" (signing)
   ## or "X25519" (ECDH-ES).
