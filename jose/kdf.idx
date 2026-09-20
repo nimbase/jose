@@ -1,0 +1,5 @@
+nimTitle	kdf	jose/kdf.html	module jose/kdf		0
+nim	concatKdf	jose/kdf.html#concatKdf,openArray[byte],int,string,openArray[byte],openArray[byte]	proc concatKdf(z: openArray[byte]; keyLenBits: int; algorithmId: string;\n          apu: openArray[byte] = []; apv: openArray[byte] = []): seq[byte]		23
+nim	pbes2Salt	jose/kdf.html#pbes2Salt,JweAlg,openArray[byte]	proc pbes2Salt(alg: JweAlg; p2s: openArray[byte]): seq[byte]		90
+nim	pbes2Derive	jose/kdf.html#pbes2Derive,openArray[byte],JweAlg,openArray[byte],int,int,int	proc pbes2Derive(password: openArray[byte]; alg: JweAlg; p2s: openArray[byte];\n            p2c: int; hashBits: int; kekLen: int): seq[byte]		98
+nim	pbes2HashBits	jose/kdf.html#pbes2HashBits,JweAlg	proc pbes2HashBits(alg: JweAlg): int		107

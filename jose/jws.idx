@@ -1,0 +1,11 @@
+nimTitle	jws	jose/jws.html	module jose/jws		0
+nim	HsAlgs	jose/jws.html#HsAlgs	const HsAlgs		23
+nim	RsAlgs	jose/jws.html#RsAlgs	const RsAlgs		24
+nim	PsAlgs	jose/jws.html#PsAlgs	const PsAlgs		25
+nim	EsAlgs	jose/jws.html#EsAlgs	const EsAlgs		26
+nim	jwsSign	jose/jws.html#jwsSign,JwsAlg,Jwk,openArray[byte],JsonNode	proc jwsSign(alg: JwsAlg; key: Jwk; payload: openArray[byte];\n        protectedExtra: JsonNode = nil): string		101
+nim	jwsSign	jose/jws.html#jwsSign,JwsAlg,Jwk,string,JsonNode	proc jwsSign(alg: JwsAlg; key: Jwk; payload: string; protectedExtra: JsonNode = nil): string		112
+nim	JwsVerified	jose/jws.html#JwsVerified	object JwsVerified		125
+nim	jwsVerify	jose/jws.html#jwsVerify,string,Jwk,openArray[JwsAlg]	proc jwsVerify(token: string; key: Jwk; allowAlgs: openArray[JwsAlg] = [];\n          allowNone = false): JwsVerified		157
+nim	jwsVerifyStr	jose/jws.html#jwsVerifyStr,string,Jwk,openArray[JwsAlg]	proc jwsVerifyStr(token: string; key: Jwk; allowAlgs: openArray[JwsAlg] = [];\n             allowNone = false): string		191
+nimgrp	jwssign	jose/jws.html#jwsSign-procs-all	proc		101

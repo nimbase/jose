@@ -1,0 +1,7 @@
+nimTitle	b64	jose/b64.html	module jose/b64		0
+nim	b64urlEncode	jose/b64.html#b64urlEncode,openArray[byte]	proc b64urlEncode(data: openArray[byte]): string		9
+nim	b64urlEncode	jose/b64.html#b64urlEncode,string	proc b64urlEncode(s: string): string		16
+nim	b64urlDecode	jose/b64.html#b64urlDecode,string	proc b64urlDecode(s: string): seq[byte]		20
+nim	b64urlDecodeStr	jose/b64.html#b64urlDecodeStr,string	proc b64urlDecodeStr(s: string): string		40
+nim	b64urlEncodeInt	jose/b64.html#b64urlEncodeInt,openArray[byte]	proc b64urlEncodeInt(v: openArray[byte]): string		47
+nimgrp	b64urlencode	jose/b64.html#b64urlEncode-procs-all	proc		9

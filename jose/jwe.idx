@@ -1,0 +1,7 @@
+nimTitle	jwe	jose/jwe.html	module jose/jwe		0
+nim	KwAlgs	jose/jwe.html#KwAlgs	const KwAlgs		32
+nim	EcdhKwAlgs	jose/jwe.html#EcdhKwAlgs	const EcdhKwAlgs		33
+nim	JweDecrypted	jose/jwe.html#JweDecrypted	object JweDecrypted		36
+nim	jweEncrypt	jose/jwe.html#jweEncrypt,JweAlg,JweEnc,Jwk,openArray[byte],JsonNode,openArray[byte],openArray[byte],int	proc jweEncrypt(alg: JweAlg; enc: JweEnc; key: Jwk; plaintext: openArray[byte];\n           protectedExtra: JsonNode = nil; apu: openArray[byte] = [];\n           apv: openArray[byte] = []; p2c = 100000): string		308
+nim	jweDecrypt	jose/jwe.html#jweDecrypt,string,Jwk,openArray[JweAlg],openArray[JweEnc]	proc jweDecrypt(token: string; key: Jwk; allowAlgs: openArray[JweAlg] = [];\n           allowEncs: openArray[JweEnc] = []): JweDecrypted		457
+nim	jweDecryptStr	jose/jwe.html#jweDecryptStr,string,Jwk,openArray[JweAlg],openArray[JweEnc]	proc jweDecryptStr(token: string; key: Jwk; allowAlgs: openArray[JweAlg] = [];\n              allowEncs: openArray[JweEnc] = []): string		501

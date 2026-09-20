@@ -1,0 +1,45 @@
+nimTitle	algs	jose/algs.html	module jose/algs		0
+nim	HS256	jose/algs.html#HS256	JwsAlg.HS256		13
+nim	HS384	jose/algs.html#HS384	JwsAlg.HS384		13
+nim	HS512	jose/algs.html#HS512	JwsAlg.HS512		13
+nim	RS256	jose/algs.html#RS256	JwsAlg.RS256		13
+nim	RS384	jose/algs.html#RS384	JwsAlg.RS384		13
+nim	RS512	jose/algs.html#RS512	JwsAlg.RS512		13
+nim	PS256	jose/algs.html#PS256	JwsAlg.PS256		13
+nim	PS384	jose/algs.html#PS384	JwsAlg.PS384		13
+nim	PS512	jose/algs.html#PS512	JwsAlg.PS512		13
+nim	ES256	jose/algs.html#ES256	JwsAlg.ES256		13
+nim	ES384	jose/algs.html#ES384	JwsAlg.ES384		13
+nim	ES512	jose/algs.html#ES512	JwsAlg.ES512		13
+nim	ES256K	jose/algs.html#ES256K	JwsAlg.ES256K		13
+nim	EdDSA	jose/algs.html#EdDSA	JwsAlg.EdDSA		13
+nim	JwsAlg	jose/algs.html#JwsAlg	enum JwsAlg		13
+nim	Dir	jose/algs.html#Dir	JweAlg.Dir		29
+nim	A128KW	jose/algs.html#A128KW	JweAlg.A128KW		29
+nim	A192KW	jose/algs.html#A192KW	JweAlg.A192KW		29
+nim	A256KW	jose/algs.html#A256KW	JweAlg.A256KW		29
+nim	RSA_OAEP	jose/algs.html#RSA_OAEP	JweAlg.RSA_OAEP		29
+nim	RSA_OAEP_256	jose/algs.html#RSA_OAEP_256	JweAlg.RSA_OAEP_256		29
+nim	RSA1_5	jose/algs.html#RSA1_5	JweAlg.RSA1_5		29
+nim	ECDH_ES	jose/algs.html#ECDH_ES	JweAlg.ECDH_ES		29
+nim	ECDH_ES_A128KW	jose/algs.html#ECDH_ES_A128KW	JweAlg.ECDH_ES_A128KW		29
+nim	ECDH_ES_A192KW	jose/algs.html#ECDH_ES_A192KW	JweAlg.ECDH_ES_A192KW		29
+nim	ECDH_ES_A256KW	jose/algs.html#ECDH_ES_A256KW	JweAlg.ECDH_ES_A256KW		29
+nim	PBES2_HS256_A128KW	jose/algs.html#PBES2_HS256_A128KW	JweAlg.PBES2_HS256_A128KW		29
+nim	PBES2_HS384_A192KW	jose/algs.html#PBES2_HS384_A192KW	JweAlg.PBES2_HS384_A192KW		29
+nim	PBES2_HS512_A256KW	jose/algs.html#PBES2_HS512_A256KW	JweAlg.PBES2_HS512_A256KW		29
+nim	A128GCMKW	jose/algs.html#A128GCMKW	JweAlg.A128GCMKW		29
+nim	A192GCMKW	jose/algs.html#A192GCMKW	JweAlg.A192GCMKW		29
+nim	A256GCMKW	jose/algs.html#A256GCMKW	JweAlg.A256GCMKW		29
+nim	JweAlg	jose/algs.html#JweAlg	enum JweAlg		29
+nim	A128CBC_HS256	jose/algs.html#A128CBC_HS256	JweEnc.A128CBC_HS256		48
+nim	A192CBC_HS384	jose/algs.html#A192CBC_HS384	JweEnc.A192CBC_HS384		48
+nim	A256CBC_HS512	jose/algs.html#A256CBC_HS512	JweEnc.A256CBC_HS512		48
+nim	A128GCM	jose/algs.html#A128GCM	JweEnc.A128GCM		48
+nim	A192GCM	jose/algs.html#A192GCM	JweEnc.A192GCM		48
+nim	A256GCM	jose/algs.html#A256GCM	JweEnc.A256GCM		48
+nim	C20P	jose/algs.html#C20P	JweEnc.C20P		48
+nim	JweEnc	jose/algs.html#JweEnc	enum JweEnc		48
+nim	parseJwsAlg	jose/algs.html#parseJwsAlg,string	proc parseJwsAlg(s: string): JwsAlg		57
+nim	parseJweAlg	jose/algs.html#parseJweAlg,string	proc parseJweAlg(s: string): JweAlg		76
+nim	parseJweEnc	jose/algs.html#parseJweEnc,string	proc parseJweEnc(s: string): JweEnc		98

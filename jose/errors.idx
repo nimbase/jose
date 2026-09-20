@@ -1,0 +1,3 @@
+nimTitle	errors	jose/errors.html	module jose/errors		0
+nim	JoseError	jose/errors.html#JoseError	object JoseError		6
+nim	joseFail	jose/errors.html#joseFail.t,string	template joseFail(msg: string)		11

@@ -1,0 +1,3 @@
+nimTitle	kw	jose/kw.html	module jose/kw		0
+nim	aesKwWrap	jose/kw.html#aesKwWrap,openArray[byte],openArray[byte]	proc aesKwWrap(kek, keyData: openArray[byte]): seq[byte]		33
+nim	aesKwUnwrap	jose/kw.html#aesKwUnwrap,openArray[byte],openArray[byte]	proc aesKwUnwrap(kek, wrapped: openArray[byte]): seq[byte]		56

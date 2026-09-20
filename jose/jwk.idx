@@ -1,0 +1,35 @@
+nimTitle	jwk	jose/jwk.html	module jose/jwk		0
+nim	jwkOct	jose/jwk.html#jwkOct	JwkKind.jwkOct		27
+nim	jwkRSA	jose/jwk.html#jwkRSA	JwkKind.jwkRSA		27
+nim	jwkEC	jose/jwk.html#jwkEC	JwkKind.jwkEC		27
+nim	jwkOKP	jose/jwk.html#jwkOKP	JwkKind.jwkOKP		27
+nim	JwkKind	jose/jwk.html#JwkKind	enum JwkKind		27
+nim	Jwk	jose/jwk.html#Jwk	object Jwk		30
+nim	hasPrivate	jose/jwk.html#hasPrivate,Jwk	proc hasPrivate(key: Jwk): bool		61
+nim	ecCurveFromCrv	jose/jwk.html#ecCurveFromCrv,string	proc ecCurveFromCrv(s: string): EcCurve		84
+nim	ecCrvFromCurve	jose/jwk.html#ecCrvFromCurve,EcCurve	proc ecCrvFromCurve(c: EcCurve): string		92
+nim	jwkOctKey	jose/jwk.html#jwkOctKey,openArray[byte],string	proc jwkOctKey(raw: openArray[byte]; kid = ""): Jwk		103
+nim	jwkPassword	jose/jwk.html#jwkPassword,openArray[byte],string	proc jwkPassword(raw: openArray[byte]; kid = ""): Jwk		109
+nim	jwkOctGenerate	jose/jwk.html#jwkOctGenerate,int,string	proc jwkOctGenerate(bits = 256; kid = ""): Jwk		115
+nim	jwkRsa	jose/jwk.html#jwkRsa,BigInt,BigInt,string	proc jwkRsa(n, e: BigInt; kid = ""): Jwk		125
+nim	jwkRsaPrivate	jose/jwk.html#jwkRsaPrivate,BigInt,BigInt,BigInt,BigInt,BigInt,string	proc jwkRsaPrivate(n, e, d, p, q: BigInt; kid = ""): Jwk		133
+nim	jwkRsaPrivateBare	jose/jwk.html#jwkRsaPrivateBare,BigInt,BigInt,BigInt,string	proc jwkRsaPrivateBare(n, e, d: BigInt; kid = ""): Jwk		143
+nim	jwkRsaGenerate	jose/jwk.html#jwkRsaGenerate,int,string	proc jwkRsaGenerate(bits = 2048; kid = ""): Jwk		154
+nim	jwkEc	jose/jwk.html#jwkEc,EcCurve,BigInt,BigInt,string	proc jwkEc(curve: EcCurve; x, y: BigInt; kid = ""): Jwk		167
+nim	jwkEcPrivate	jose/jwk.html#jwkEcPrivate,EcCurve,BigInt,string	proc jwkEcPrivate(curve: EcCurve; d: BigInt; kid = ""): Jwk		173
+nim	jwkEcGenerate	jose/jwk.html#jwkEcGenerate,EcCurve,string	proc jwkEcGenerate(curve: EcCurve; kid = ""): Jwk		183
+nim	jwkOkpFromSeed	jose/jwk.html#jwkOkpFromSeed,array[,byte],string	proc jwkOkpFromSeed(seed: array[32, byte]; kid = ""): Jwk		189
+nim	jwkOkpFromPub	jose/jwk.html#jwkOkpFromPub,array[,byte],string	proc jwkOkpFromPub(pub: array[32, byte]; kid = ""): Jwk		195
+nim	jwkX25519FromSeed	jose/jwk.html#jwkX25519FromSeed,array[,byte],string	proc jwkX25519FromSeed(seed: array[32, byte]; kid = ""): Jwk		199
+nim	jwkX25519FromPub	jose/jwk.html#jwkX25519FromPub,array[,byte],string	proc jwkX25519FromPub(pub: array[32, byte]; kid = ""): Jwk		205
+nim	jwkX25519Generate	jose/jwk.html#jwkX25519Generate,string	proc jwkX25519Generate(kid = ""): Jwk		213
+nim	jwkEd25519Generate	jose/jwk.html#jwkEd25519Generate,string	proc jwkEd25519Generate(kid = ""): Jwk		217
+nim	jwkOkpGenerate	jose/jwk.html#jwkOkpGenerate,string,string	proc jwkOkpGenerate(crv = "Ed25519"; kid = ""): Jwk		221
+nim	jwkFromJson	jose/jwk.html#jwkFromJson,JsonNode	proc jwkFromJson(node: JsonNode): Jwk		233
+nim	jwkFromJsonStr	jose/jwk.html#jwkFromJsonStr,string	proc jwkFromJsonStr(s: string): Jwk		297
+nim	jwkToJson	jose/jwk.html#jwkToJson,Jwk	proc jwkToJson(key: Jwk; includePrivate = false): JsonNode		305
+nim	jwkToPublic	jose/jwk.html#jwkToPublic,Jwk	proc jwkToPublic(key: Jwk): Jwk		345
+nim	jwksFromJson	jose/jwk.html#jwksFromJson,JsonNode	proc jwksFromJson(node: JsonNode): seq[Jwk]		361
+nim	jwksFind	jose/jwk.html#jwksFind,openArray[Jwk],string	proc jwksFind(keys: openArray[Jwk]; kid: string): Jwk		371
+nim	jwkThumbprint	jose/jwk.html#jwkThumbprint,Jwk	proc jwkThumbprint(key: Jwk): string		387
+nim	requireRsaCrt	jose/jwk.html#requireRsaCrt,Jwk	proc requireRsaCrt(key: Jwk)		415

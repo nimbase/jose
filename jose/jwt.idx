@@ -1,0 +1,22 @@
+nimTitle	jwt	jose/jwt.html	module jose/jwt		0
+nim	JwtBuilder	jose/jwt.html#JwtBuilder	object JwtBuilder		15
+nim	JwtChecker	jose/jwt.html#JwtChecker	object JwtChecker		19
+nim	initJwtBuilder	jose/jwt.html#initJwtBuilder	proc initJwtBuilder(): JwtBuilder		44
+nim	claim	jose/jwt.html#claim,JwtBuilder,string,JsonNode	proc claim(b: var JwtBuilder; name: string; value: JsonNode)		47
+nim	claim	jose/jwt.html#claim,JwtBuilder,string,string	proc claim(b: var JwtBuilder; name, value: string)		51
+nim	claim	jose/jwt.html#claim,JwtBuilder,string,int64	proc claim(b: var JwtBuilder; name: string; value: int64)		54
+nim	claim	jose/jwt.html#claim,JwtBuilder,string,bool	proc claim(b: var JwtBuilder; name: string; value: bool)		57
+nim	iss	jose/jwt.html#iss,JwtBuilder,string	proc iss(b: var JwtBuilder; v: string)		60
+nim	sub	jose/jwt.html#sub,JwtBuilder,string	proc sub(b: var JwtBuilder; v: string)		61
+nim	aud	jose/jwt.html#aud,JwtBuilder,string	proc aud(b: var JwtBuilder; v: string)		62
+nim	jti	jose/jwt.html#jti,JwtBuilder,string	proc jti(b: var JwtBuilder; v: string)		63
+nim	exp	jose/jwt.html#exp,JwtBuilder,int64	proc exp(b: var JwtBuilder; v: int64)		64
+nim	nbf	jose/jwt.html#nbf,JwtBuilder,int64	proc nbf(b: var JwtBuilder; v: int64)		65
+nim	iat	jose/jwt.html#iat,JwtBuilder,int64	proc iat(b: var JwtBuilder; v: int64)		66
+nim	initJwtChecker	jose/jwt.html#initJwtChecker,int64,string,seq[string],seq[string]	proc initJwtChecker(leewaySeconds = 60'i64; issuer = "";\n               audience: seq[string] = @[]; requireExp = false;\n               requireIat = false; required: seq[string] = @[]): JwtChecker		68
+nim	checkClaims	jose/jwt.html#checkClaims,JwtChecker,JsonNode	proc checkClaims(c: JwtChecker; claims: JsonNode): JsonNode		85
+nim	jwtSign	jose/jwt.html#jwtSign,JwtBuilder,JwsAlg,Jwk,JsonNode	proc jwtSign(b: JwtBuilder; alg: JwsAlg; key: Jwk; protectedExtra: JsonNode = nil): string		127
+nim	jwtVerify	jose/jwt.html#jwtVerify,string,Jwk,JwtChecker,openArray[JwsAlg]	proc jwtVerify(token: string; key: Jwk; c: JwtChecker;\n          allowAlgs: openArray[JwsAlg] = []): JsonNode		132
+nim	jwtEncrypt	jose/jwt.html#jwtEncrypt,JwtBuilder,JweAlg,JweEnc,Jwk,JsonNode,openArray[byte],openArray[byte],int	proc jwtEncrypt(b: JwtBuilder; alg: JweAlg; enc: JweEnc; key: Jwk;\n           protectedExtra: JsonNode = nil; apu: openArray[byte] = [];\n           apv: openArray[byte] = []; p2c = 100000): string		147
+nim	jwtDecrypt	jose/jwt.html#jwtDecrypt,string,Jwk,JwtChecker,openArray[JweAlg],openArray[JweEnc]	proc jwtDecrypt(token: string; key: Jwk; c: JwtChecker;\n           allowAlgs: openArray[JweAlg] = []; allowEncs: openArray[JweEnc] = []): JsonNode		154
+nimgrp	claim	jose/jwt.html#claim-procs-all	proc		47
