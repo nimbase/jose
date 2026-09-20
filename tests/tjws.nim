@@ -8,10 +8,10 @@ import std/unittest
 
 import nimcypher/algos/ecdsa
 
-import jose/jwk
-import jose/jws
-import jose/algs
-import jose/errors
+import ../src/jose/jwk
+import ../src/jose/jws
+import ../src/jose/algs
+import ../src/jose/errors
 
 const payloadB64 =
   "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt" &

@@ -4,8 +4,8 @@
 
 import std/unittest
 
-import jose/b64
-import jose/errors
+import ../src/jose/b64
+import ../src/jose/errors
 
 suite "b64url":
   test "RFC 7515 appendix A.1 protected header segment":

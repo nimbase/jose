@@ -5,8 +5,8 @@
 import std/json
 import std/unittest
 
-import jose
-import jose/errors
+import ../src/jose
+import ../src/jose/errors
 
 const hsKey = """{"kty":"oct",
   "k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"}"""

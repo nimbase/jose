@@ -8,11 +8,11 @@ import std/unittest
 
 import nimcypher/algos/x25519 as x25519Algo
 
-import jose/jwk
-import jose/jwe
-import jose/algs
-import jose/b64
-import jose/errors
+import ../src/jose/jwk
+import ../src/jose/jwe
+import ../src/jose/algs
+import ../src/jose/b64
+import ../src/jose/errors
 
 const imagination =
   "The true sign of intelligence is not knowledge but imagination."

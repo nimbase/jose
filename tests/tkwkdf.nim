@@ -6,12 +6,12 @@
 import std/strutils
 import std/unittest
 
-import jose/kw
-import jose/kdf
-import jose/jwk
-import jose/algs
-import jose/b64
-import jose/errors
+import ../src/jose/kw
+import ../src/jose/kdf
+import ../src/jose/jwk
+import ../src/jose/algs
+import ../src/jose/b64
+import ../src/jose/errors
 
 import nimcypher/algos/ecdsa as ecdsaAlgo
 
