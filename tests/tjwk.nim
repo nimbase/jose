@@ -3,6 +3,7 @@
 # (c) 2026 George Lemon | MIT License
 
 import std/json
+import std/strutils
 import std/unittest
 
 import nimcypher/algos/ecdsa
@@ -151,3 +152,45 @@ suite "jwk sets":
       discard jwksFind(set, "")
     expect(JoseError):
       discard jwksFind(set, "zzz")
+
+suite "jwk okp generate":
+  test "Ed25519 default generates private key, roundtrips":
+    let key = jwkOkpGenerate()
+    check key.kind == jwkOKP
+    check key.okpCrv == "Ed25519"
+    check key.hasPrivate
+    check key.kid == ""
+    let rt = jwkFromJson(jwkToJson(key, includePrivate = true))
+    check rt.okpPub == key.okpPub
+    check rt.okpSeed == key.okpSeed
+    check jwkThumbprint(key).len > 0
+    check jwkToPublic(key).hasPrivate == false
+
+  test "Ed25519 generation is unique and signs":
+    let a = jwkOkpGenerate(kid = "a")
+    let b = jwkOkpGenerate(kid = "b")
+    check a.okpPub != b.okpPub
+    check a.okpSeed != b.okpSeed
+    check a.kid == "a"
+    check jwsSign(EdDSA, a, "hello").split('.')[2].len > 0
+    let token = jwsSign(EdDSA, a, "hello")
+    check jwsVerifyStr(token, a) == "hello"
+
+  test "X25519 generates private key, roundtrips":
+    let key = jwkOkpGenerate("X25519")
+    check key.kind == jwkOKP
+    check key.okpCrv == "X25519"
+    check key.hasPrivate
+    let rt = jwkFromJson(jwkToJson(key, includePrivate = true))
+    check rt.okpPub == key.okpPub
+    check rt.okpSeed == key.okpSeed
+
+  test "jwkX25519Generate delegates to unified generator":
+    let key = jwkX25519Generate()
+    check key.kind == jwkOKP
+    check key.okpCrv == "X25519"
+    check key.hasPrivate
+
+  test "rejects unsupported OKP curve":
+    expect(JoseError):
+      discard jwkOkpGenerate("X448")

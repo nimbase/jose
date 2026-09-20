@@ -206,12 +206,21 @@ proc jwkX25519FromPub*(pub: array[32, byte], kid = ""): Jwk =
   ## Build a public X25519 key.
   Jwk(kind: jwkOKP, kid: kid, okpCrv: "X25519", okpPub: pub)
 
+proc randomSeed32(): array[32, byte] =
+  let raw = urandom(32)
+  for i in 0 ..< 32: result[i] = raw[i]
+
 proc jwkX25519Generate*(kid = ""): Jwk =
   ## Generate a random X25519 key pair.
-  let raw = urandom(32)
-  var seed: array[32, byte]
-  for i in 0 ..< 32: seed[i] = raw[i]
-  jwkX25519FromSeed(seed, kid)
+  jwkX25519FromSeed(randomSeed32(), kid)
+
+proc jwkOkpGenerate*(crv = "Ed25519", kid = ""): Jwk =
+  ## Generate a random OKP key pair. `crv` is "Ed25519" (signing)
+  ## or "X25519" (ECDH-ES).
+  case crv
+  of "Ed25519": jwkOkpFromSeed(randomSeed32(), kid)
+  of "X25519": jwkX25519FromSeed(randomSeed32(), kid)
+  else: joseFail("unsupported OKP curve: " & crv)
 
 # ---------------------------------------------------------------------------
 # JSON parsing / serialization
